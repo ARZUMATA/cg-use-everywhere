@@ -172,17 +172,26 @@ app.registerExtension({
         */
         const original_drawFrontCanvas = LGraphCanvas.prototype.drawFrontCanvas
         LGraphCanvas.prototype.drawFrontCanvas = function() {
+            // Check if canvas is being manipulated (dragging)
+            const moving = this.dragging_canvas;
+            
+            // Check if we should skip the UE-specific processing due to dragging
             try {
-                shared.linkRenderController.disable_all_connected_widgets()
+                if (!moving) {
+                    shared.linkRenderController.disable_all_connected_widgets()
+                }
+                
                 return original_drawFrontCanvas.apply(this, arguments);
             }  catch (e) {
                 Logger.log_error(e)
             } finally {
                 try {
-                    shared.linkRenderController.enable_all_disabled_widgets()
+                    if (!moving) {
+                        shared.linkRenderController.enable_all_disabled_widgets()
+                    }
                 } catch (e) {
                     Logger.log_error(e)
-                } 
+                }
                 
             }
         }
