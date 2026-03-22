@@ -111,9 +111,28 @@ export class LinkRenderController extends Pausable {
         this.last_used_ue_list  = undefined; // the last ue list we actually used to generate graphics
         this.link_list_outdated = false;
         this.widgets_disabled   = []
+        this.nodes_moving       = false; // tracks if selected nodes are being moved
+        
         setInterval(this.try_to_update_link_list.bind(this), 100);
         setInterval(this.mark_link_list_outdated.bind(this), 2000);
-     }
+        
+        // Hook canvas pointer events to detect when mouse is down, indicating that selected nodes may be dragged
+        // LiteGraph uses native DOM event listeners, so we hook into the canvas element directly
+        const onPointerDown = (e) => {
+            if (app.canvas.selected_nodes && Object.keys(app.canvas.selected_nodes).length > 0) {
+                this.nodes_moving = true;
+                app.canvas.setDirty(true);
+            }
+        };
+        
+        const onPointerUp = (e) => {
+                this.nodes_moving = false;
+        };
+        
+        // Add event listeners to the canvas element
+        app.canvas.canvas?.addEventListener('pointerdown', onPointerDown, true);
+        app.canvas.canvas?.addEventListener('pointerup', onPointerUp, true);
+    }
     
     queue_size = null;
     note_queue_size(x) { this.queue_size = x; }
@@ -320,6 +339,12 @@ export class LinkRenderController extends Pausable {
 
     _render_all_ue_links(ctx) {
         if (!this._list_ready()) return;
+
+        // Check if canvas or selected nodes are being manipulated (dragging/moving)
+        const moving = app.canvas.dragging_canvas || this.nodes_moving;
+        if (moving)
+            return;
+
         this.last_used_ue_list = this.ue_list;
 
         ctx.save();
